@@ -1,100 +1,35 @@
 const { application } = require('express');
-const { PrismaClient } = require('@prisma/client')
 const cors = require('cors');
 const express = require('express');
-let all = 0;
+const fileUpload = require('express-fileupload');
+const { PrismaClient } = require('@prisma/client')
+const minio = require('minio');
+
+const prisma = new PrismaClient()
+const minios = new minio.Client({
+    endPoint: 's3.eu-west-2.wasabisys.com',
+    accessKey: 'MCUVHLPPN8PBSJACJBWH',
+    secretKey: 'hw2CvpmJ99pwwnFJGk9ndSOPa9YDr2ySqAPVghBT'
+})
+
+
 
 const server = express();
 server.use(express.json());
 server.use(cors());
-
-const prisma = new PrismaClient()
-
-
-server.post("/login", async (req, res) => {
-    const a = req.body.data;
-    const uporabnik = await prisma.Users.findMany({
-        where: {
-            email: a.email,
-            password: a.password
-        }
-    })
-
-
-    console.log(uporabnik);
-
-
-    if (uporabnik.length != 0) {
-        console.log(uporabnik);
-
-        const sendBack = {
-            id: uporabnik[0].userID
-        }
-        console.log(sendBack);
-        res.send(sendBack);
-    } else {
-        res.status(404).send('user not found');
-    }
-
-})
-
-function makeid(length) {
-    let result = '';
-    let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let charactersLength = characters.length;
-    for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-}
+server.use(fileUpload());
 
 
 
-server.post("/register", async (req, res) => {
-    console.log(req.body.data);
-    const data = req.body.data;
-    let iD = makeid(20);
-    let error = false;
-
-    const emails = await prisma.Users.findMany({
-        select: {
-            email: true,
-            userID: true
-        }
-    });
+const auth = require('./routes/auth/auth.js');
+const register = require('./routes/auth/register.js');
 
 
-    emails.forEach(el => {
-        if (el.email == data.email) {
-            error = true;
-        }
-        if (el.userID == iD) {
-            error = true;
-        }
-    })
+server.use(auth);
+server.use(register);
 
-    console.log(emails);
 
-    if (!error) {
-        const newUserData = {
-            userID: iD,
-            email: data.email,
-            password: data.password,
-            name: data.name,
-            surname: data.surname
-        };
 
-        const newUser = await prisma.Users.create({ data: newUserData })
-            .catch((e) => {
-                console.error(e)
-                res.status(400);
-            })
-
-        res.send('user creation succsess');
-    } else {
-        res.status(400).send();
-    }
-})
 
 server.post('/userInfo', async (req, res) => {
     const data = req.body.data;
@@ -108,6 +43,22 @@ server.post('/userInfo', async (req, res) => {
     console.log(userInfo);
 
     res.send(userInfo[0]);
+})
+
+
+server.post('/uploadFile', async (req, res) => {
+    console.log(req.files.file);
+
+    let key = 'neki/' + req.files.file.name;
+    let stream = req.files.file.data;
+
+
+    minios.putObject('mojoblakdev', key, stream, (err, data) => {
+        if (err) {
+            return console.log(err) // err should be null
+        }
+        console.log("Success", data)
+    });
 })
 
 
