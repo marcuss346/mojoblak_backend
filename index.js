@@ -47,6 +47,7 @@ server.post('/userInfo', async (req, res) => {
 
 
 server.post('/uploadFile', async (req, res) => {
+    console.log(req);
     console.log(req.files.file);
 
     let key = 'neki/' + req.files.file.name;
@@ -59,6 +60,53 @@ server.post('/uploadFile', async (req, res) => {
         }
         console.log("Success", data)
     });
+
+    let owner = req.body.owner;
+
+    let dataBase = {
+        owner: owner,
+        path: key,
+    }
+
+    const uploadKey = await prisma.datoteka.create({ data: dataBase });
+
+})
+
+server.post('/getFiles', async (req, res) => {
+    const files = await prisma.datoteka.findMany({
+        where: {
+            owner: req.body.data.owner
+        },
+        select: {
+            path: true,
+        }
+    })
+
+    res.send(files);
+})
+
+server.post('/download', async (req, res) => {
+    console.log(req.body.data);
+    let path = req.body.data.path;
+
+
+    minios.getObject('mojoblakdev', path, (err, stream) => {
+        let size = 0;
+        if (err) console.log(err);
+        else {
+            stream.on('data', (chunk) => {
+                console.log(chunk);
+                size += chunk;
+            })
+
+            stream.on('end', () => {
+                console.log(size);
+                res.send(size);
+            })
+        }
+    })
+
+
 })
 
 
