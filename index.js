@@ -66,6 +66,7 @@ server.post('/uploadFile', async (req, res) => {
     let dataBase = {
         owner: owner,
         path: key,
+        imeDatoteke: req.files.file.name,
     }
 
     const uploadKey = await prisma.datoteka.create({ data: dataBase });
@@ -79,6 +80,7 @@ server.post('/getFiles', async (req, res) => {
         },
         select: {
             path: true,
+            imeDatoteke: true,
         }
     })
 
@@ -90,19 +92,11 @@ server.post('/download', async (req, res) => {
     let path = req.body.data.path;
 
 
-    minios.getObject('mojoblakdev', path, (err, stream) => {
-        let size = 0;
+    minios.presignedGetObject('mojoblakdev', path, (err, link) => {
         if (err) console.log(err);
         else {
-            stream.on('data', (chunk) => {
-                console.log(chunk);
-                size += chunk;
-            })
-
-            stream.on('end', () => {
-                console.log(size);
-                res.send(size);
-            })
+            console.log(link);
+            res.send(link);
         }
     })
 
