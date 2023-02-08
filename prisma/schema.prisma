@@ -20,8 +20,19 @@ model Datoteka {
 model Users {
   userID   String     @id @db.VarChar(20)
   email    String     @unique(map: "email") @db.VarChar(50)
-  password String     @db.VarChar(50)
+  password String     @db.VarChar(500)
   name     String     @db.VarChar(20)
   surname  String     @db.VarChar(50)
   Datoteka Datoteka[]
+  Session  Session[]
+}
+
+model Session {
+  Token   String   @db.VarChar(50)
+  UserID  String   @db.VarChar(20)
+  expires DateTime @db.DateTime(0)
+  Users   Users    @relation(fields: [UserID], references: [userID], onUpdate: Restrict, map: "session_ibfk_1")
+
+  @@id([Token, UserID])
+  @@index([UserID], map: "UserID")
 }

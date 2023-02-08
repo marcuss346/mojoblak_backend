@@ -4,6 +4,7 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const { PrismaClient } = require('@prisma/client')
 const minio = require('minio');
+const { checkAuth } = require('./routes/functions/checkauth')
 
 const prisma = new PrismaClient()
 const minios = new minio.Client({
@@ -34,57 +35,76 @@ server.use(register);
 server.post('/userInfo', async (req, res) => {
     const data = req.body.data;
 
-    const userInfo = await prisma.Users.findMany({
-        where: {
-            userID: data.userId,
-        },
-    })
+    const SessionData = await checkAuth(data.Token);
 
-    console.log(userInfo);
+    console.log(SessionData);
 
-    res.send(userInfo[0]);
+    if (SessionData == false) {
+        res.send({ auth: false });
+    } else {
+        console.log(SessionData);
+
+        const userInfo = await prisma.Users.findMany({
+            where: {
+                userID: SessionData.UserID
+            }
+        })
+
+        console.log(userInfo);
+
+        res.send(userInfo[0]);
+    }
 })
 
 
 server.post('/uploadFile', async (req, res) => {
     console.log(req);
     console.log(req.files.file);
+    let Token = req.body.owner;
 
-    let key = 'neki/' + req.files.file.name;
-    let stream = req.files.file.data;
+    const Auth = await checkAuth(Token);
+
+    if (Auth == false) {
+        res.send('failed to upload file, authentication expired');
+    } else {
+        let key = Auth.UserID + '/' + req.files.file.name;
+        let stream = req.files.file.data;
 
 
-    minios.putObject('mojoblakdev', key, stream, (err, data) => {
-        if (err) {
-            return console.log(err) // err should be null
+        minios.putObject('mojoblakdev', key, stream, (err, data) => {
+            if (err) {
+                return console.log(err) // err should be null
+            }
+            console.log("Success", data)
+        });
+        let dataBase = {
+            owner: Auth.UserID,
+            path: key,
+            imeDatoteke: req.files.file.name,
         }
-        console.log("Success", data)
-    });
-
-    let owner = req.body.owner;
-
-    let dataBase = {
-        owner: owner,
-        path: key,
-        imeDatoteke: req.files.file.name,
+        const uploadKey = await prisma.datoteka.create({ data: dataBase });
     }
-
-    const uploadKey = await prisma.datoteka.create({ data: dataBase });
 
 })
 
 server.post('/getFiles', async (req, res) => {
-    const files = await prisma.datoteka.findMany({
-        where: {
-            owner: req.body.data.owner
-        },
-        select: {
-            path: true,
-            imeDatoteke: true,
-        }
-    })
+    const Auth = checkAuth(req.body.data.Token);
 
-    res.send(files);
+    if (Auth == false) {
+        res.send('No authentication')
+    } else {
+        const files = await prisma.datoteka.findMany({
+            where: {
+                owner: Auth.UserID
+            },
+            select: {
+                path: true,
+                imeDatoteke: true,
+            }
+        })
+
+        res.send(files);
+    }
 })
 
 server.post('/download', async (req, res) => {

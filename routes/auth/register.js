@@ -1,5 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient()
 
@@ -24,6 +25,7 @@ register.post("/register", async (req, res) => {
     const data = req.body.data;
     let iD = makeid(20);
     let error = false;
+    let hashed = '';
 
     const emails = await prisma.Users.findMany({
         select: {
@@ -44,25 +46,32 @@ register.post("/register", async (req, res) => {
 
     console.log(emails);
 
-    if (!error) {
-        const newUserData = {
-            userID: iD,
-            email: data.email,
-            password: data.password,
-            name: data.name,
-            surname: data.surname
-        };
+    bcrypt.hash(data.password, 10, async (err, hash) => {
+        if (err) console.log(err);
+        else {
+            if (!error) {
+                const newUserData = {
+                    userID: iD,
+                    email: data.email,
+                    password: hash,
+                    name: data.name,
+                    surname: data.surname
+                };
 
-        const newUser = await prisma.Users.create({ data: newUserData })
-            .catch((e) => {
-                console.error(e)
-                res.status(400);
-            })
+                const newUser = await prisma.Users.create({ data: newUserData })
+                    .catch((e) => {
+                        console.error(e)
+                        res.status(400);
+                    })
 
-        res.send('user creation succsess');
-    } else {
-        res.status(400).send();
-    }
+                res.send('user creation succsess');
+            } else {
+                res.status(400).send();
+            }
+        }
+    })
+
+
 })
 
 module.exports = register;
