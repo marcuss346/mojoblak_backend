@@ -45,7 +45,8 @@ file.post('/uploadFile', async (req, res) => {
 })
 
 file.post('/getFiles', async (req, res) => {
-    const Auth = checkAuth(req.body.data.Token);
+    const Auth = await checkAuth(req.body.data.Token);
+    console.log(Auth);
 
     if (Auth == false) {
         res.send('No authentication')
@@ -79,5 +80,18 @@ file.post('/download', async (req, res) => {
 
 
 })
+
+
+file.post('/delete', async (req, res) => {
+    console.log(req.body.data);
+
+    const remove = await minios.removeObject('mojoblakdev', req.body.data.path);
+    const removeFromDB = await prisma.datoteka.deleteMany({
+        where: {
+            path: req.body.data.path,
+        },
+    })
+
+});
 
 module.exports = file;
