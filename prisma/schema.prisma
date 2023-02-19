@@ -18,13 +18,15 @@ model Datoteka {
 }
 
 model Users {
-  userID   String     @id @db.VarChar(20)
-  email    String     @unique(map: "email") @db.VarChar(50)
-  password String     @db.VarChar(500)
-  name     String     @db.VarChar(20)
-  surname  String     @db.VarChar(50)
-  Datoteka Datoteka[]
-  Session  Session[]
+  userID        String     @id @db.VarChar(20)
+  email         String     @unique(map: "email") @db.VarChar(50)
+  password      String     @db.VarChar(500)
+  name          String     @db.VarChar(20)
+  surname       String     @db.VarChar(50)
+  AvailableSize String?    @default("5000000001") @db.VarChar(20)
+  UsedSize      String?    @default("0") @db.VarChar(20)
+  Datoteka      Datoteka[]
+  Session       Session[]
 }
 
 model Session {

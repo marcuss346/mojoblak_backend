@@ -44,7 +44,7 @@ server.post('/userInfo', async (req, res) => {
 
         const userInfo = await prisma.Users.findMany({
             where: {
-                userID: SessionData.UserID
+                userID: SessionData.userID
             }
         })
 

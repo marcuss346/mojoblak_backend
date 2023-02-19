@@ -20,11 +20,34 @@ file.post('/uploadFile', async (req, res) => {
     let Token = req.body.owner;
 
     const Auth = await checkAuth(Token);
+    let currentSize = parseInt(Auth.UsedSize);
 
     if (Auth == false) {
         res.send('failed to upload file, authentication expired');
+        return;
     } else {
-        let key = Auth.UserID + '/' + req.files.file.name;
+        console.log(req.files.file);
+        let tmp = req.files.file.size;
+        console.log(tmp);
+        currentSize += req.files.file.size;
+        console.log(currentSize);
+        console.log(parseInt(Auth.AvailableSize));
+
+        if (currentSize > parseInt(Auth.AvailableSize)) {
+            res.send('NO SPACE AVAILABLE')
+            return;
+        }
+
+        const updateUser = await prisma.users.update({
+            where: {
+                userID: Auth.userID,
+            },
+            data: {
+                UsedSize: String(currentSize),
+            },
+        });
+
+        let key = Auth.userID + '/' + req.files.file.name;
         let stream = req.files.file.data;
 
 
@@ -35,7 +58,7 @@ file.post('/uploadFile', async (req, res) => {
             console.log("Success", data)
         });
         let dataBase = {
-            owner: Auth.UserID,
+            owner: Auth.userID,
             path: key,
             imeDatoteke: req.files.file.name,
         }
@@ -46,14 +69,18 @@ file.post('/uploadFile', async (req, res) => {
 
 file.post('/getFiles', async (req, res) => {
     const Auth = await checkAuth(req.body.data.Token);
+
+    console.log('FILES LOADING')
     console.log(Auth);
+    console.log('ENDED AUTH PATH');
+
 
     if (Auth == false) {
         res.send('No authentication')
     } else {
         const files = await prisma.datoteka.findMany({
             where: {
-                owner: Auth.UserID
+                owner: Auth.userID
             },
             select: {
                 path: true,

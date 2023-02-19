@@ -12,9 +12,28 @@ async function checkAuth(CheckToken) {
         },
     })
 
+
+
     if (SessionData.length === 0) {
         return false;
-    } else return SessionData[0];
+    } else {
+        console.log('chechk Auth')
+        console.log(SessionData[0]);
+        const UserData = await prisma.Users.findMany({
+            where: {
+                userID: SessionData[0].UserID,
+            },
+            select: {
+                userID: true,
+                AvailableSize: true,
+                UsedSize: true,
+            },
+        })
+        console.log('Returned Data from FindUser');
+        console.log(UserData);
+        console.log('end Returned Data from FindUser');
+        return UserData[0];
+    }
 }
 
 module.exports = { checkAuth }
