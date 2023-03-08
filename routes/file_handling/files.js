@@ -26,6 +26,7 @@ file.post('/uploadFile', async (req, res) => {
         res.send('failed to upload file, authentication expired');
         return;
     } else {
+        const files = await prisma.datoteka.findMany({ select: { imeDatoteke: true } })
         console.log(req.files.file);
         let tmp = req.files.file.size;
         console.log(tmp);
@@ -92,6 +93,31 @@ file.post('/getFiles', async (req, res) => {
     }
 })
 
+file.post('/trashFiles', async (req, res) => {
+    const Auth = await checkAuth(req.body.data.Token);
+
+    console.log('FILES LOADING')
+    console.log(Auth);
+    console.log('ENDED AUTH PATH');
+
+
+    if (Auth == false) {
+        res.send('No authentication')
+    } else {
+        const files = await prisma.Trash.findMany({
+            where: {
+                owner: Auth.userID
+            },
+            select: {
+                path: true,
+                imeDatoteke: true,
+            }
+        })
+
+        res.send(files);
+    }
+})
+
 file.post('/download', async (req, res) => {
     console.log(req.body.data);
     let path = req.body.data.path;
@@ -118,6 +144,66 @@ file.post('/delete', async (req, res) => {
             path: req.body.data.path,
         },
     })
+
+});
+
+
+file.post('/moveToTrash', async (req, res) => {
+    console.log(req.body.data);
+
+
+    const Move = await prisma.datoteka.findMany({
+        where: {
+            path: req.body.data.path,
+        },
+    })
+
+    console.log('Datoteka to delete:')
+    console.log(Move);
+
+
+    const date = new Date();
+    let finaldate = '';
+
+    let year = date.getFullYear();
+    let month = date.getMonth();
+    let day = date.getDate();
+
+    if (day > 30) {
+        day = 1;
+        month++;
+    } if (month > 12) {
+        month = 1;
+        year++;
+    }
+
+    if (month < 10 && day < 10) {
+        finaldate = year + '-0' + month + '-0' + day + 'T00:00:00.0000Z';
+    } else if (month < 10) {
+        finaldate = year + '-0' + month + '-' + day + 'T00:00:00.0000Z';
+    } else if (day < 10) {
+        finaldate = year + '-' + month + '-0' + day + 'T00:00:00.0000Z';
+    }
+
+    const moveData = {
+        idDat: Move[0].idDat,
+        path: Move[0].path,
+        owner: Move[0].owner,
+        imeDatoteke: Move[0].imeDatoteke,
+        added: finaldate
+    }
+
+    const remove = await prisma.datoteka.deleteMany({
+        where: {
+            idDat: Move[0].idDat,
+            path: Move[0].path,
+            owner: Move[0].owner,
+
+        }
+    })
+    const moveToTrash = await prisma.trash.create({
+        data: moveData
+    });
 
 });
 

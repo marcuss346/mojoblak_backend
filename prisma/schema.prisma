@@ -18,15 +18,16 @@ model Datoteka {
 }
 
 model Users {
-  userID        String     @id @db.VarChar(20)
-  email         String     @unique(map: "email") @db.VarChar(50)
-  password      String     @db.VarChar(500)
-  name          String     @db.VarChar(20)
-  surname       String     @db.VarChar(50)
-  AvailableSize String?    @default("5000000001") @db.VarChar(20)
-  UsedSize      String?    @default("0") @db.VarChar(20)
-  Datoteka      Datoteka[]
-  Session       Session[]
+  userID         String           @id @db.VarChar(20)
+  email          String           @unique(map: "email") @db.VarChar(50)
+  password       String           @db.VarChar(500)
+  name           String           @db.VarChar(20)
+  surname        String           @db.VarChar(50)
+  AvailableSize  String?          @default("5000000001") @db.VarChar(20)
+  UsedSize       String?          @default("0") @db.VarChar(20)
+  Datoteka       Datoteka[]
+  ForgotPassword ForgotPassword[]
+  Session        Session[]
 }
 
 model Session {
@@ -37,4 +38,21 @@ model Session {
 
   @@id([Token, UserID])
   @@index([UserID], map: "UserID")
+}
+
+model ForgotPassword {
+  Token   String   @db.VarChar(100)
+  UserID  String   @db.VarChar(20)
+  expires DateTime @db.DateTime(0)
+  Users   Users    @relation(fields: [UserID], references: [userID], onUpdate: Restrict, map: "forgotpassword_ibfk_1")
+
+  @@id([UserID, Token])
+}
+
+model Trash {
+  idDat       Int      @id
+  owner       String   @db.VarChar(50)
+  path        String   @db.VarChar(2000)
+  imeDatoteke String?  @db.VarChar(500)
+  added       DateTime @db.Date
 }

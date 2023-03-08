@@ -6,6 +6,7 @@ const { PrismaClient } = require('@prisma/client')
 const minio = require('minio');
 const { checkAuth } = require('./routes/functions/checkauth')
 
+
 const prisma = new PrismaClient()
 
 
@@ -21,11 +22,12 @@ server.use(fileUpload());
 const auth = require('./routes/auth/auth.js');
 const register = require('./routes/auth/register.js');
 const file = require('./routes/file_handling/files.js')
-
+const forgot = require('./routes/auth/forgot')
 
 server.use(auth);
 server.use(register);
 server.use(file);
+server.use(forgot);
 
 
 
