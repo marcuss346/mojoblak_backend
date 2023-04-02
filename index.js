@@ -14,7 +14,10 @@ const prisma = new PrismaClient()
 
 const server = express();
 server.use(express.json());
-server.use(cors());
+server.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST'],
+}));
 server.use(fileUpload());
 
 

@@ -23,7 +23,7 @@ file.post('/uploadFile', async (req, res) => {
     let currentSize = parseInt(Auth.UsedSize);
 
     if (Auth == false) {
-        res.send('failed to upload file, authentication expired');
+        res.status(404).send('failed to upload file, authentication expired');
         return;
     } else {
         const files = await prisma.datoteka.findMany({ select: { imeDatoteke: true } })
@@ -35,10 +35,45 @@ file.post('/uploadFile', async (req, res) => {
         console.log(parseInt(Auth.AvailableSize));
 
         if (currentSize > parseInt(Auth.AvailableSize)) {
-            res.send('NO SPACE AVAILABLE')
+            res.status(404).send('NO SPACE AVAILABLE')
             return;
         }
 
+
+
+        let fName = req.files.file.name;
+
+        const Files = await prisma.datoteka.findMany({ where: { owner: Auth.userID }, select: { imeDatoteke: true } });
+
+        let filess = [];
+
+        Files.forEach(el => {
+            filess.push(el.imeDatoteke);
+        })
+
+        console.log(filess);
+
+        for (let i = 0; filess.includes(fName); i++) {
+            let arr = req.files.file.name.split('.');
+            fName = arr[0] + '(' + i + ').' + arr[1];;
+        }
+        console.log('IME');
+        console.log(fName);
+
+        let key = Auth.userID + '/' + fName;
+        let stream = req.files.file.data;
+
+
+        const aaaaa = await minios.putObject('mojoblakdev', key, stream);
+        console.log(aaaaa);
+        let dataBase = {
+            owner: Auth.userID,
+            path: key,
+            imeDatoteke: fName,
+            Size: String(req.files.file.size)
+        }
+        console.log(dataBase);
+        const uploadKey = await prisma.datoteka.create({ data: dataBase });
         const updateUser = await prisma.users.update({
             where: {
                 userID: Auth.userID,
@@ -47,23 +82,7 @@ file.post('/uploadFile', async (req, res) => {
                 UsedSize: String(currentSize),
             },
         });
-
-        let key = Auth.userID + '/' + req.files.file.name;
-        let stream = req.files.file.data;
-
-
-        minios.putObject('mojoblakdev', key, stream, (err, data) => {
-            if (err) {
-                return console.log(err) // err should be null
-            }
-            console.log("Success", data)
-        });
-        let dataBase = {
-            owner: Auth.userID,
-            path: key,
-            imeDatoteke: req.files.file.name,
-        }
-        const uploadKey = await prisma.datoteka.create({ data: dataBase });
+        res.send(dataBase);
     }
 
 })
@@ -77,7 +96,7 @@ file.post('/getFiles', async (req, res) => {
 
 
     if (Auth == false) {
-        res.send('No authentication')
+        res.status(404).send('No authentication')
     } else {
         const files = await prisma.datoteka.findMany({
             where: {
@@ -102,7 +121,7 @@ file.post('/trashFiles', async (req, res) => {
 
 
     if (Auth == false) {
-        res.send('No authentication')
+        res.status(404).send('No authentication')
     } else {
         const files = await prisma.Trash.findMany({
             where: {
@@ -122,15 +141,17 @@ file.post('/download', async (req, res) => {
     console.log(req.body.data);
     let path = req.body.data.path;
 
+    let linka = '';
 
     minios.presignedGetObject('mojoblakdev', path, (err, link) => {
         if (err) console.log(err);
         else {
-            console.log(link);
-            res.send(link);
+            linka = link;
         }
     })
-
+    if (linka.length === 0) { res.sendStatus(404); return; }
+    console.log(linka);
+    res.send(linka);
 
 })
 
@@ -138,8 +159,28 @@ file.post('/download', async (req, res) => {
 file.post('/delete', async (req, res) => {
     console.log(req.body.data);
 
+    const file = await prisma.Trash.findMany({ where: { path: req.body.data.path } });
+    const user = await prisma.Users.findMany({
+        where: {
+            userID: file[0].owner,
+        }
+    })
+    console.log(file);
+    let currentSize = parseInt(user[0].UsedSize) - parseInt(file[0].Size);
+
+    console.log(currentSize);
+
+    const updateUser = await prisma.users.update({
+        where: {
+            userID: user[0].userID,
+        },
+        data: {
+            UsedSize: String(currentSize),
+        },
+    });
+
     const remove = await minios.removeObject('mojoblakdev', req.body.data.path);
-    const removeFromDB = await prisma.datoteka.deleteMany({
+    const removeFromDB = await prisma.Trash.deleteMany({
         where: {
             path: req.body.data.path,
         },
@@ -168,6 +209,7 @@ file.post('/moveToTrash', async (req, res) => {
     let year = date.getFullYear();
     let month = date.getMonth();
     let day = date.getDate();
+    month++;
 
     if (day > 30) {
         day = 1;
@@ -190,6 +232,7 @@ file.post('/moveToTrash', async (req, res) => {
         path: Move[0].path,
         owner: Move[0].owner,
         imeDatoteke: Move[0].imeDatoteke,
+        Size: Move[0].Size,
         added: finaldate
     }
 

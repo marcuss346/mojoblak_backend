@@ -12,6 +12,7 @@ model Datoteka {
   owner       String  @db.VarChar(50)
   path        String  @db.VarChar(2000)
   imeDatoteke String? @db.VarChar(500)
+  Size        String? @db.VarChar(20)
   Users       Users   @relation(fields: [owner], references: [userID], onUpdate: Restrict, map: "datoteka_ibfk_1")
 
   @@index([owner], map: "owner")
@@ -55,4 +56,5 @@ model Trash {
   path        String   @db.VarChar(2000)
   imeDatoteke String?  @db.VarChar(500)
   added       DateTime @db.Date
+  Size        String?  @db.VarChar(20)
 }
