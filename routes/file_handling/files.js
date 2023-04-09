@@ -186,6 +186,8 @@ file.post('/delete', async (req, res) => {
         },
     })
 
+    res.sendStatus(200);
+
 });
 
 
@@ -248,6 +250,46 @@ file.post('/moveToTrash', async (req, res) => {
         data: moveData
     });
 
+    res.sendStatus(200);
 });
+
+file.post('/restore', async (req, res) => {
+    console.log(req.body.data);
+
+
+    const Move = await prisma.trash.findMany({
+        where: {
+            path: req.body.data.path,
+        },
+    })
+
+    console.log('Datoteka to delete:')
+    console.log(Move);
+
+
+
+
+    const moveData = {
+        idDat: Move[0].idDat,
+        path: Move[0].path,
+        owner: Move[0].owner,
+        imeDatoteke: Move[0].imeDatoteke,
+        Size: Move[0].Size,
+    }
+
+    const remove = await prisma.trash.deleteMany({
+        where: {
+            idDat: Move[0].idDat,
+            path: Move[0].path,
+            owner: Move[0].owner,
+
+        }
+    })
+    const moveToTrash = await prisma.datoteka.create({
+        data: moveData
+    });
+
+    res.sendStatus(200);
+})
 
 module.exports = file;

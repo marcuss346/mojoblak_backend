@@ -60,7 +60,7 @@ forgot.post('/forgotPassword', async (req, res) => {
 
         const dt = await prisma.ForgotPassword.create({ data: resetToken });
 
-        let url = `localhost:3000/resetPassword?token=${resetToken.Token}`;
+        let url = `${process.env.FRONTEND_URL}/resetPassword?token=${resetToken.Token}`;
 
         console.log(url);
 
