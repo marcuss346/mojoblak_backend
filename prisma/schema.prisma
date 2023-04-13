@@ -29,6 +29,7 @@ model Users {
   Datoteka       Datoteka[]
   ForgotPassword ForgotPassword[]
   Session        Session[]
+  Trash          Trash[]
 }
 
 model Session {
@@ -57,4 +58,7 @@ model Trash {
   imeDatoteke String?  @db.VarChar(500)
   added       DateTime @db.Date
   Size        String?  @db.VarChar(20)
+  Users       Users    @relation(fields: [owner], references: [userID], onUpdate: Restrict, map: "inTrash")
+
+  @@index([owner], map: "inTrash")
 }
