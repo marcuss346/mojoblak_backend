@@ -99,9 +99,16 @@ forgot.post('/deleteUser', async (req, res) => {
       where: { owner: b.userID },
       select: { path: true },
     });
+    const vSmeteh = await prisma.trash.findMany({
+      where: { owner: b.userID },
+      select: { path: true },
+    });
     let err = false;
     console.log(datoteke);
     datoteke.forEach(async (dat) => {
+      const aaa = await minios.removeObject('mojoblakdev', dat.path);
+    });
+    vSmeteh.forEach(async (dat) => {
       const aaa = await minios.removeObject('mojoblakdev', dat.path);
     });
     if (!err) {
